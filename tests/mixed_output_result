@@ -1,0 +1,14 @@
+@@ -2 +2,2 @@
+
+-b
++added line
++heres another
+@@ -4,0 +6 @@
+
++going to add another
+@@ -6,2 +8,2 @@
+
+-f
+-g
++f line got deleted
++add some more
