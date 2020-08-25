@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import diff
 
-class Bin2DecTestCase(unittest.TestCase):
+class DiffTestCase(unittest.TestCase):
 
     def test_add_from_empty(self):
         deltas = diff.diff_files('tests/test_add_from_empty1', 'tests/test_add_from_empty2')
