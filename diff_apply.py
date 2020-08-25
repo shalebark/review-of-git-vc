@@ -26,9 +26,5 @@ def diff_apply_file(file, deltafile):
         deltas = diff.read_deltas_buffer(df.read())
     return diff_apply(filebuffer, deltas)
 
-
-def diff_apply_out(filebuffer, deltas):
-    (diff_apply(filebuffer, deltas))
-
 if __name__ == '__main__':
     sys.stdout.write(diff_apply_file(sys.argv[1], sys.argv[2]))
