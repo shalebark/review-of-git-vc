@@ -1,22 +1,25 @@
 How BVC Works:
 
-    3 types of objects (blob, tree, commit)
-        All objects are stored inside .bvc/objects.
+    Objects:
+        Same as git, but author data is not tracked, since its all one person.
 
-        Commit Object:
-            [Structure]:
-                tree {tree-hash}
-                {commit-message}
-            Basically, the Commit contains the hash to a tree object (this will lead to all the information needed to create a snapshot of the commit), and some additional details
-            such as author and the commit-message.
+    Branches:
 
-        Tree Object:
-            [Structure]:
-                {file-permission} {file-type} {blob-hash} {file-name}
-            The Tree Object contains all the files in a given commit.
-            It has one line for each file, and each line contains a blob-hash which points to a snapshot of the file. The line also contains information such as file-permissions.
 
-        Blob:
-            [Structure]:
-                {snapshot}
-                This file contains only the snapshot of the file.
+    branches:
+        List of all changesets for a branch is stored as a log file in .git/logs/refs/heads/{branch-name}
+        The log file will have one row dedicated to each changeset in descending order.
+        [Structure]:
+            {parent-commit-hash} {commit-hash} {branch-author} {branch-creation-timestamp} {branch-creation-description}
+            {parent-commit-hash} is 0000000000000000000000000000000000000000 if it doesn't have a parent
+            {branch-creation-timestamp} is a unix timestamp for the time of creation
+            {branch-creation-description} some description that describes the branch creation like ("merge f6a89a79f229f12efd2eb5a92a60ab74d7dcef3d: Fast-forward" or "commit: hello")
+
+        The HEAD of each branch is found in a file located in .git/refs/heads/{branch-name}. The file only contains the commit-hash.
+
+    finding a specific revision regardless of branch:
+        All changesets are found in a single file .git/logs/HEADS.
+        This file have one line, in descending order, of every commit made.
+        [Structure]:
+            {parent-commit-hash} {commit-hash} {branch-author} {branch-creation-timestamp} {branch-creation-description}
+        The structure is pretty much the same as the branches one, except in this file, it contains all branches
