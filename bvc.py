@@ -29,5 +29,7 @@ How BVC Works:
             newly added files
     repository ()
 
+
+    ALL FILE PATHS SHOULD BE RELPATHS
 """
 
