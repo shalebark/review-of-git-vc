@@ -1,0 +1,84 @@
+How Git Works:
+
+    3 types of objects (blob, tree, commit)
+        All objects are stored inside .git/objects.
+
+        Commit Object:
+            [Structure]:
+                tree {tree-hash}
+                author {author-details}
+                {commit-message}
+            Basically, the Commit contains the hash to a tree object (this will lead to all the information needed to create a snapshot of the commit), and some additional details
+            such as author and the commit-message.
+
+        Tree Object:
+            [Structure]:
+                {file-permission} {file-type} {blob-hash} {file-name}
+            The Tree Object contains all the files in a given commit.
+            It has one line for each file, and each line contains a blob-hash which points to a snapshot of the file. The line also contains information such as file-permissions.
+
+        Blob:
+            [Structure]:
+                {snapshot}
+                This file contains only the snapshot of the file.
+
+
+    branches:
+        List of all changesets for a branch is stored as a log file in .git/logs/refs/heads/{branch-name}
+        The log file will have one row dedicated to each changeset in descending order.
+        [Structure]:
+            {parent-commit-hash} {commit-hash} {branch-author} {branch-creation-timestamp} {branch-creation-description}
+            {parent-commit-hash} is 0000000000000000000000000000000000000000 if it doesn't have a parent
+            {branch-creation-timestamp} is a unix timestamp for the time of creation
+            {branch-creation-description} some description that describes the branch creation like ("merge f6a89a79f229f12efd2eb5a92a60ab74d7dcef3d: Fast-forward" or "commit: hello")
+
+        The HEAD of each branch is found in a file located in .git/refs/heads/{branch-name}. The file only contains the commit-hash.
+
+    finding a specific revision regardless of branch:
+        All changesets are found in a single file .git/logs/HEADS.
+        This file have one line, in descending order, of every commit made.
+        [Structure]:
+            {parent-commit-hash} {commit-hash} {branch-author} {branch-creation-timestamp} {branch-creation-description}
+        The structure is pretty much the same as the branches one, except in this file, it contains all branches
+
+
+    the index:
+        A file that contains a virtual copy of the workspace.
+        The virtual copy is modified by git add, git rm from the command line. By using either of these, a file is considered "staged".
+        A file is considered change when a change is detected from matching with the index.
+        How change is detected:
+            The index contains information from `st_mode`, `st_mtime`, `st_ctime`, `st_uid, `st_ino`, `st_size` from stat().
+            If `st_mode`, `st_mtime`, `st_uid`, or `st_size` has been changed, then it is considered change.
+            There is a condition known as racy-git, where `st_mtime` is equal to the `st_mtime` of the index file, and `st_size` is not changed.
+            Git solves this problem by comparing the contents of the file, in this specific scenario.
+        [Structure]:
+            {`st_mode`} {`st_mtime`} {`st_uid`} {`st_size`} {blob-hash} {staging-number} {file-path}
+            {`st_mode`} is the file type and mode represented in 4 3 byte digits (ex: 0777)
+            {`st_mtime`} is last modified time of the file.
+            {`st_uid`} is the uid of the owner
+            {`st_size`} is the size of the file
+            {blob-hash} a link to the hash
+            {staging-number} is the staging number of the file, default is 0.
+            {file-path} is the filepath
+
+        Split and Shared Index:
+            When a repository has very large indexes, it will split its index, hoping to reduce the time to write to the index.
+
+        Staging:
+            git add:
+                If the file does not exist in the index, it gets added to the index, the blob gets created and its hash is added to the index.
+                If the file does exist in the index, the index values will get updated (blob-hash, `st_mode`, `st_mtime`, `st_uid`, `st_ino`, `st_size`)
+            git rm
+                Removes the file from the index.
+                This is speculation, but if a file is removed from the index, how does git status know that a deletion is staged?
+                There must be a comparison between index, and the tree of the current commit. That difference will show as a removed file.
+            git merge
+                When a merge between two files occurs, 3 additional versions of a file needs to exist in the index.
+                Slot 0: This is the original or resolved merged file. When the file is in conflict, this is left empty.
+                Slot 1: This is the common ancestor file, this is the closest ancestor for both of the files.
+                Slot 2: This is the "our" file.
+                Slot 3: This is the "their" file.
+                So git knows a file is in conflict if slot 1,2,3 is not empty.
+
+                When git merges, it will either succeed or enter a conflict. If a merge succeeds, it will update slot zero, the original.
+                If a conflict occurs, it will create 3 slots, slot1, slot2, and slot3. No file is added to the workspace, it can be retrieved using the blobs.

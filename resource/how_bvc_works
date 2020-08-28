@@ -1,0 +1,22 @@
+How BVC Works:
+
+    3 types of objects (blob, tree, commit)
+        All objects are stored inside .bvc/objects.
+
+        Commit Object:
+            [Structure]:
+                tree {tree-hash}
+                {commit-message}
+            Basically, the Commit contains the hash to a tree object (this will lead to all the information needed to create a snapshot of the commit), and some additional details
+            such as author and the commit-message.
+
+        Tree Object:
+            [Structure]:
+                {file-permission} {file-type} {blob-hash} {file-name}
+            The Tree Object contains all the files in a given commit.
+            It has one line for each file, and each line contains a blob-hash which points to a snapshot of the file. The line also contains information such as file-permissions.
+
+        Blob:
+            [Structure]:
+                {snapshot}
+                This file contains only the snapshot of the file.
