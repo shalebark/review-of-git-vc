@@ -15,7 +15,6 @@ If a directory is given, it will recursively apply the same code to every file.
 
 """
 
-
 import os
 import CONSTANTS
 import Index

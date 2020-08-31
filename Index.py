@@ -17,14 +17,14 @@ IndexEntry:
 """
 class IndexEntry:
     #='0000000000000000000000000000000000000000'
-    def __init__(self, mode, mtime, uid, size, blob_hash, staging_number, file_path):
+    def __init__(self, mode, mtime, uid, size, blob_hash, staging_number, rel_path):
         self.mode = mode
         self.mtime = mtime
         self.uid = uid
         self.size = size
         self.blob_hash = blob_hash
         self.staging_number = staging_number
-        self.file_path = file_path
+        self.rel_path = rel_path
 
     def changed(self, other) -> bool:
         if type(other) is os.stat_result:
@@ -35,7 +35,7 @@ class IndexEntry:
         return not self.changed(other)
 
     def __str__(self):
-        return "%s %s %s %s %s %s %s %s" %(self.mode, self.mtime, self.uid, self.size, self.size, self.blob_hash, self.staging_number, self.file_path)
+        return "%s %s %s %s %s %s %s %s" %(self.mode, self.mtime, self.uid, self.size, self.size, self.blob_hash, self.staging_number, self.rel_path)
 
 class Index:
     def __init__(self):
@@ -44,6 +44,9 @@ class Index:
 
     def __contains__(self, x):
         return x in self.entries
+
+    def __getitem__(self, filepath: str) -> IndexEntry:
+        return self.entries[filepath]
 
     def __setitem__(self, filepath: str, value: IndexEntry):
         self.entries[filepath] = value
@@ -60,6 +63,15 @@ class Index:
 
     def __next__(self):
         return self.entries[next(self.__entries_iter)]
+
+    def filepaths(self):
+        return self.entries.keys()
+
+    def blobhashes(self):
+        return [self[relpath].blob_hash for relpath in self.filepaths()]
+
+    def as_dict(self):
+        return dict(zip(self.filepaths(), self.blobhashes()))
 
 class IndexWorker:
     def __init__(self):
@@ -100,5 +112,5 @@ def compare_filepath_to_index(index: Index, relpath: str) -> bool:
     return entry.compare(stat)
 
 def compare_workspace_to_index(index: Index) -> list:
-    return [ entry.file_path for entry in index if entry.compare(os.stat(entry.file_path)) ]
+    return [ entry.rel_path for entry in index if entry.compare(os.stat(entry.rel_path)) ]
 
