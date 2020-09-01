@@ -66,6 +66,29 @@ class TestBVC:
         changes = bvc.status()
         assert not changes[0] and not changes[1] and not changes[2] and not changes[3]
 
+    def test_log(self):
+        log = bvc.log()
+        ll = log.split('\n')
+
+        assert 'Removed first file, add second file to index' in ll[0]
+        assert 'Changed first file, second file still untracked' in ll[1]
+        assert 'Added First File' in ll[2]
+
+    def test_diff(self):
+        with open('__second', 'w') as f:
+            f.write('Diff for second file.')
+        bvc.stage('__second')
+        changes = bvc.status()
+
+        bvc.commit('diff test for first file')
+        logs = [ tuple(l.split('\t')) for l in bvc.log().split('\n') if l]
+        # print(logs)
+        ch1 = logs[0][0]
+        ch2 = logs[1][0]
+
+        diffs = bvc.diff(ch1, '__second', ch2, '__second').split('\n')
+        assert diffs[6] == '-Second File'
+        assert diffs[7] == '+Diff for second file.'
 
     @classmethod
     def setup_class(cls):
@@ -78,33 +101,3 @@ class TestBVC:
         if os.path.exists('__second'):
             os.remove('__second')
         clean_bvc()
-
-# class BVCTestCase(unittest.TestCase):
-
-#     def test_init(self):
-#         clean_bvc()
-#         bvc.init()
-#         clean_bvc()
-
-#     def test_stage(self):
-#         clean_bvc()
-#         bvc.init()
-
-#         changes = bvc.status()
-#         print(changes)
-
-#         with open('__first' 'w') as f:
-#             f.write('First File')
-
-#         bvc.stage('__first', True)
-
-#         print(changes)
-
-
-
-#     def tearDownClass(self):
-#         clean_bvc()
-
-# if __name__ == '__main__':
-#     unittest.main()
-

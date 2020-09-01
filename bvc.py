@@ -1,4 +1,3 @@
-
 import sys
 import hashlib
 import binascii
@@ -6,6 +5,7 @@ import math
 import os
 import time
 import CONSTANTS
+import functools
 
 def hashbuf(buf):
     hasher = hashlib.sha1()
@@ -28,6 +28,11 @@ def wstat(relpath):
 # make and write to file, always truncate file first
 def write(relpath, content):
     with open(relpath, 'w') as f:
+        f.write(content)
+
+# makes and appends to file, always appends
+def append(relpath, content):
+    with open(relpath, 'a') as f:
         f.write(content)
 
 def remove(relpath):
@@ -63,6 +68,7 @@ def commit(message):
     ch = hashbuf(cb)
     write('.bvc/objects/' + ch, cb)
     write('.bvc/HEAD', ch)
+    append('.bvc/refs', ch + '\n')
 
 # adds to stage or the index, if add_to is False, then remove from index instead
 def stage(relpath, add_to=True):
@@ -143,7 +149,14 @@ def status():
         if re[2] != ws[0] or re[3] != ws[1]:
             modified.add(re[1])
 
-    return (added, removed, staged, modified)
+    # walks through the directory, ignores ./.bvc directory, merges os.walk into relpath, and then strips ./ from the front of each file
+    ws = functools.reduce(lambda p,c: c.union(p) ,[ set(map(lambda f: ("%s/%s" %(t[0], f))[2:], t[2])) for t in os.walk('.') if './.bvc' not in t[0][0:6] ], set())
+    # relpaths in index
+    rf = set(map(lambda x: x[1], ri))
+    # untracks are sorted in descending: level of depth in directory (closest to base comes first), a-z
+    untracked = sorted(ws - rf, key=lambda x: (x.count('/'), x))
+
+    return (added, removed, staged, modified, untracked)
 
 def checkout(ch):
     cc = list(map(lambda l: l.split('\t'), read('.bvc/objects/' + ch).split('\n')))
@@ -152,12 +165,41 @@ def checkout(ch):
     for tf in tc:
         write(tf[1], read('.bvc/objects/' + tf[0]))
 
+from datetime import datetime
+def log():
+    lc = read('.bvc/refs')
+    ld = list(map(lambda ch: tuple(read('.bvc/objects/' + ch).split('\t')) + (ch,), [ l for l in lc.split('\n') if l ]))
+
+    # Jan 01, 1999 - 23:59
+    buffer = '\n'.join([ "%s\t%s\t%s" %(j[3], j[2], datetime.fromtimestamp(float(j[1])).strftime('%b %d, %Y %H:%M')) for i, j in enumerate(ld[::-1]) ])
+    return buffer
+
+import difflib
+def diff(ch1, rp1, ch2, rp2):
+    cc1 = tuple(read('.bvc/objects/' + ch1).split('\t'))
+    cc2 = tuple(read('.bvc/objects/' + ch2).split('\t'))
+    tc1 = list(map(lambda l: tuple(l.split('\t')), [ l for l in read('.bvc/objects/' + cc1[0]).split('\n') if l ]))
+    tc2 = list(map(lambda l: tuple(l.split('\t')), [ l for l in read('.bvc/objects/' + cc2[0]).split('\n') if l ]))
+
+    print(tc1, tc2)
+
+    bh1 = next((x[0] for x in tc1 if x[1] == rp1 ))
+    bh2 = next((x[0] for x in tc2 if x[1] == rp2 ))
+
+    bc1 = [l for l in read('.bvc/objects/' + bh1).split('\n') if l]
+    bc2 = [l for l in read('.bvc/objects/' + bh2).split('\n') if l]
+
+    return '\n'.join(difflib.unified_diff(bc2, bc1))
+
+
+
 def init():
     if not exists('.bvc'):
         os.mkdir('.bvc')
         os.mknod('.bvc/HEAD')
         os.mknod('.bvc/INDEX')
         os.mkdir('.bvc/objects')
+        os.mknod('.bvc/refs')
 
 if __name__ == "__main__":
     method = sys.argv[1]
@@ -175,6 +217,8 @@ if __name__ == "__main__":
             print_changes('Staged', changes[2])
         if changes[3]:
             print_changes('Unstaged changes', changes[3])
+        if changes[4]:
+            print_changes('Untracked', changes[4])
 
     elif method == "add":
         stage(sys.argv[2], True)
@@ -184,5 +228,9 @@ if __name__ == "__main__":
         commit(sys.argv[2])
     elif method == "checkout":
         checkout(sys.argv[2])
+    elif method == "log":
+        sys.stdout.write(log() + '\n')
+    elif method == "diff":
+        sys.stdout.write(diff('7835afd53f8f6e1795827d10483ac39ff940d973', 'first', '238ba36d6001303be73a061f1f49b5d18ee1f849', 'first') + '\n')
     else:
         sys.stderr.write(sys.argv[1] + ' is not an available command.')
