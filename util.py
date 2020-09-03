@@ -6,7 +6,7 @@ def read(relpath, mode='r'):
 
 # make and write to file, always truncate file first
 def write(relpath, content, mode='w'):
-    with open(relpath, 'w') as f:
+    with open(relpath, mode) as f:
         f.write(content)
 
 def delete(relpath):

@@ -1,6 +1,6 @@
 import os
 
-from bio import read
+from util import read, write, append as io_append
 import objects
 
 # commit object using the head hash
@@ -11,3 +11,14 @@ def head():
     if not ch:
         return None
     return objects.commit(ch)
+
+def log():
+    lc = read(os.path.join('.bvc', 'refs'))
+    return list(map(lambda ch: tuple(read('.bvc/objects/' + ch).split('\t')) + (ch,), [ l for l in lc.split('\n') if l ]))
+
+def update_head(ch):
+    write(os.path.join('.bvc', 'HEAD'), ch)
+
+def append(ch):
+    io_append(os.path.join('.bvc', 'refs'), ch + os.linesep)
+

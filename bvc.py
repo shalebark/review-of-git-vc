@@ -5,27 +5,30 @@ import functools
 
 import filespace
 import objects
-import bio
+import util
 import refs
 
 def commit(message):
-    ri = read_index()
+    ri = filespace.read_index()
     # list of (blob_hash, rel_path)
     ti = sorted([ re[0:2] for re in ri ], key=lambda x: x[0])
     # buffer of the tree
     tb = '\n'.join(map(lambda x: "%s\t%s" %(x[0], x[1]), ti))
-    th = hashbuf(tb)
+    th = filespace.hashbuf(tb)
+
     # if the tree hash already exists, then an exact copy of the tree already exists, we'll just reuse it, otherwise create the tree object
-    if not exists('.bvc/objects/' + th):
-        write('.bvc/objects/' + th, tb)
+    if not objects.exists(th):
+        objects.write(th, tb)
+
     # tree hash |  timestamp (seconds from epoch) | message
+    # create new commit
     cb = "%s\t%s\t%s" %(th, time.time(), message)
-    ch = hashbuf(cb)
-    write('.bvc/objects/' + ch, cb)
-    write('.bvc/HEAD', ch)
-    append('.bvc/refs', ch + '\n')
+    ch = filespace.hashbuf(cb)
+    objects.write(ch, cb)
 
-
+    # update head, and ref log
+    refs.update_head(ch)
+    refs.append(ch)
 
 # finds the 4 statuses ( added to stage, removed from stage, modified tracked files, changed files (added to staging) )
 def status():
@@ -49,25 +52,25 @@ def checkout(ch):
 
 from datetime import datetime
 def log():
-    lc = read('.bvc/refs')
-    ld = list(map(lambda ch: tuple(read('.bvc/objects/' + ch).split('\t')) + (ch,), [ l for l in lc.split('\n') if l ]))
-
+    ld = refs.log()
     # Jan 01, 1999 - 23:59
     buffer = '\n'.join([ "%s\t%s\t%s" %(j[3], j[2], datetime.fromtimestamp(float(j[1])).strftime('%b %d, %Y %H:%M')) for i, j in enumerate(ld[::-1]) ])
     return buffer
 
 import difflib
 def diff(ch1, rp1, ch2, rp2):
-    cc1 = tuple(read('.bvc/objects/' + ch1).split('\t'))
-    cc2 = tuple(read('.bvc/objects/' + ch2).split('\t'))
-    tc1 = list(map(lambda l: tuple(l.split('\t')), [ l for l in read('.bvc/objects/' + cc1[0]).split('\n') if l ]))
-    tc2 = list(map(lambda l: tuple(l.split('\t')), [ l for l in read('.bvc/objects/' + cc2[0]).split('\n') if l ]))
+    cc1 = objects.commit(ch1)
+    cc2 = objects.commit(ch2)
 
+    tc1 = objects.tree(cc1[0])
+    tc2 = objects.tree(cc2[0])
+
+    # find the blobhash that matches the filename
     bh1 = next((x[0] for x in tc1 if x[1] == rp1 ))
     bh2 = next((x[0] for x in tc2 if x[1] == rp2 ))
 
-    bc1 = [l for l in read('.bvc/objects/' + bh1).split('\n') if l]
-    bc2 = [l for l in read('.bvc/objects/' + bh2).split('\n') if l]
+    bc1 = [ l for l in objects.blob(bh1).split('\n') if l ]
+    bc2 = [ l for l in objects.blob(bh2).split('\n') if l ]
 
     return '\n'.join(difflib.unified_diff(bc2, bc1))
 

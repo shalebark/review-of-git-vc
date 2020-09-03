@@ -3,7 +3,7 @@ import math
 import hashlib
 import binascii
 from functools import reduce
-from bio import read, write, exists
+from util import read, write, exists, delete
 
 import objects
 
@@ -66,6 +66,8 @@ def stage(relpath, add_to=True):
             if not exists(bh):
                 objects.write(bh, bc)
             ri.append((bh, relpath, bs[0], bs[1]))
+    # bvc stage rm relpath
+    # remove the file from working directory and remove from index
     else:
         if ridx is not None:
             delete(relpath)
