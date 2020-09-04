@@ -10,7 +10,8 @@ def commit(ch):
 
 # list -> [ (blob-hash, relpath) ]
 def tree(th):
-    return list(map(lambda l: tuple(l.split('\t')), read(os.path.join(dirpath, th)).split('\n')))
+    # print([l for l in read(os.path.join(dirpath, th)) if l])
+    return list(map(lambda l: tuple(l.split('\t')), [l for l in read(os.path.join(dirpath, th)).split(os.linesep) if l] ))
 
 # binary file
 def blob(bh):

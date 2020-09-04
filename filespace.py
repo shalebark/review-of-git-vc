@@ -30,6 +30,14 @@ def read_index():
         return []
     return list(map(lambda t: t.split('\t'), bc.split('\n')))
 
+# updates the index, the files to be updated come from a tree
+def update_index(tc):
+    nri = list()
+    for i,t in enumerate(tc):
+        st = wstat(t[1])
+        nri.append((t[0], t[1], st[0], st[1]))
+    write_index(nri)
+
 # blob_hash, rel_path, mtime, size
 def write_index(ri):
     write(INDEX_RELPATH, '\n'.join(map(lambda t: '\t'.join(map(str, t)), ri)))
@@ -78,7 +86,7 @@ def stage(relpath, add_to=True):
     write_index(sri)
 
 """
-Finds the 4 statuses ( added to stage, removed from stage, modified tracked files, changed files (added to staging) )
+Finds the 4 statuses ( added to stage, removed from stage, staged changes, unstaged changes )
 Expects tree contents ( list -> [ (blob-hash, relpath) ] )
 """
 def diff_tree_with_index(tree):

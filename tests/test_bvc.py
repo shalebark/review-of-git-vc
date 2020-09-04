@@ -90,6 +90,55 @@ class TestBVC:
         assert diffs[6] == '-Second File'
         assert diffs[7] == '+Diff for second file.'
 
+    def test_branch(self):
+
+        with open('__second', 'r') as f:
+            c1 = f.read()
+
+        print(c1, bvc.current_branch())
+
+
+        assert bvc.current_branch()[0] == 'master'
+        bvc.make_branch('test')
+
+        old_id = bvc.id()
+        bvc.checkout_branch('test')
+        new_id = bvc.id()
+        assert new_id != old_id
+        assert bvc.current_branch()[0] == 'test'
+
+        with open('__second', 'w') as f:
+            f.write('switched to branch test')
+
+        changes = bvc.status()
+        assert not changes[0] and not changes[1] and not changes[2]
+        assert '__second' in changes[3]
+
+        print('staging to', bvc.current_branch())
+
+        bvc.stage('__second')
+        bvc.commit('change __second in branch test')
+
+        bvc.checkout_branch('master')
+
+        print(c1, bvc.current_branch())
+
+        changes = bvc.status()
+        assert not changes[0] and not changes[1] and not changes[2] and not changes[3]
+
+        with open('__second', 'r') as f:
+            c = f.read()
+        assert c == 'Diff for second file.'
+
+        bvc.checkout_branch('test')
+        changes = bvc.status()
+        assert not changes[0] and not changes[1] and not changes[2] and not changes[3]
+        with open('__second', 'r') as f:
+            c = f.read()
+        assert c == 'switched to branch test'
+
+
+
     @classmethod
     def setup_class(cls):
         clean_bvc()

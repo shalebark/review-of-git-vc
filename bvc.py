@@ -26,11 +26,23 @@ def commit(message):
     ch = filespace.hashbuf(cb)
     objects.write(ch, cb)
 
+    # previous head
+    pid = id()
+
+    # (branch-name, head-hash)
+    bd = current_branch()
+
     # update head, and ref log
     refs.update_head(ch)
     refs.append(ch)
 
-# finds the 4 statuses ( added to stage, removed from stage, modified tracked files, changed files (added to staging) )
+    # if at the head of a branch, add the commit record to the branch
+    if bd is not None and pid == bd[1]:
+        append_branch(bd[0], ch)
+        util.write(os.path.join('.bvc', 'branch'), bd[0] + '\t' + ch)
+
+
+# finds the 4 statuses ( added to stage, removed from stage, staged changes, unstaged changes )
 def status():
     cc = refs.head()
     # if head has not been initialized, use an empty tree
@@ -44,11 +56,15 @@ def stage(relpath, add_to=True):
 stage = filespace.stage
 
 def checkout(ch):
-    cc = list(map(lambda l: l.split('\t'), read('.bvc/objects/' + ch).split('\n')))
-    tc = list(map(lambda l: tuple(l.split('\t')), read('.bvc/objects/' + cc[0][0]).split('\n')))
+    cc = objects.commit(ch)
+    tc = objects.tree(cc[0])
 
+    # writes the contents of the tree back to workspace
     for tf in tc:
-        write(tf[1], read('.bvc/objects/' + tf[0]))
+        util.write(tf[1], objects.blob(tf[0]))
+
+    # update index
+    filespace.update_index(tc)
 
 from datetime import datetime
 def log():
@@ -74,6 +90,47 @@ def diff(ch1, rp1, ch2, rp2):
 
     return '\n'.join(difflib.unified_diff(bc2, bc1))
 
+def current_branch():
+    c = util.read(os.path.join('.bvc', 'branch'))
+    if not c:
+        return None
+    return tuple(c.split('\t'))
+
+def make_branch(name):
+    # prevent a branch from creating if it already exists
+    if util.exists(os.path.join('.bvc', 'branches', name)):
+        return
+
+    cc = refs.head()
+    hh = util.read(os.path.join('.bvc', 'HEAD')).strip()
+
+    # create a new commit that serves as the root of the branch
+    cb = "%s\t%s\t%s" %(cc[0], time.time(), 'Create branch: ' + name)
+    ch = filespace.hashbuf(cb)
+    objects.write(ch, cb)
+
+    # update the ref log
+    refs.append(ch)
+
+    # creates the branches file
+    util.write(os.path.join('.bvc', 'branches', name), ch + os.linesep)
+
+def append_branch(name, ch):
+    # creates the branch file
+    util.append(os.path.join('.bvc', 'branches', name), ch + os.linesep)
+
+def delete_branch(name):
+    util.delete(os.path.join('.bvc', 'branches', name))
+
+def checkout_branch(name):
+    ch = [ l for l in util.read(os.path.join('.bvc', 'branches', name)).split('\n') if l ][-1]
+    util.write(os.path.join('.bvc', 'branch'), name + '\t' + ch)
+    refs.update_head(ch)
+    checkout(ch)
+
+def id():
+    return util.read(os.path.join('.bvc', 'HEAD'))
+
 def init():
     if not os.path.exists('.bvc'):
         os.mkdir('.bvc')
@@ -81,6 +138,12 @@ def init():
         os.mknod(os.path.join('.bvc', 'INDEX'))
         os.mkdir(os.path.join('.bvc/', 'objects'))
         os.mknod(os.path.join('.bvc', 'refs'))
+        os.mkdir(os.path.join('.bvc', 'branches'))
+        os.mknod(os.path.join('.bvc', 'branch'))
+
+        commit('initialize')
+        make_branch('master')
+        checkout_branch('master')
 
 if __name__ == "__main__":
     method = sys.argv[1]
@@ -100,7 +163,6 @@ if __name__ == "__main__":
             print_changes('Unstaged changes', changes[3])
         if changes[4]:
             print_changes('Untracked', changes[4])
-
     elif method == "add":
         stage(sys.argv[2], True)
     elif method == "remove":
@@ -113,5 +175,15 @@ if __name__ == "__main__":
         sys.stdout.write(log() + '\n')
     elif method == "diff":
         sys.stdout.write(diff('7835afd53f8f6e1795827d10483ac39ff940d973', 'first', '238ba36d6001303be73a061f1f49b5d18ee1f849', 'first') + '\n')
+    elif method == "branch":
+        sys.stdout.write(str(current_branch()) + '\n')
+    elif method == "brancha":
+        make_branch(sys.argv[2])
+    elif method== "branchc":
+        checkout_branch(sys.argv[2])
+    elif method== "branchd":
+        delete_branch(sys.argv[2])
+    elif method == "id":
+        sys.stdout.write(id() + '\n')
     else:
         sys.stderr.write(sys.argv[1] + ' is not an available command.')
