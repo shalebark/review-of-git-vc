@@ -157,6 +157,22 @@ class TestBVC:
 
         assert cma == bvc.common_ancestor(sideb_id, sidea_id)
 
+        bvc.checkout_branch('master')
+        bvc.make_branch('sidec')
+        bvc.checkout_branch('sidec')
+        cma = bvc.id()
+        sidec_id = cma
+        bvc.make_branch('sided')
+        bvc.checkout_branch('sided')
+
+        with open('__second', 'w') as f:
+            f.write('sidec should be cma')
+
+        bvc.stage('__second')
+        bvc.commit('sidec __second update')
+        sided_id = bvc.id()
+        assert cma == bvc.common_ancestor(sidec_id, sided_id)
+
     @classmethod
     def setup_class(cls):
         clean_bvc()
