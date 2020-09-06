@@ -27,7 +27,7 @@ def commit(message):
     objects.write(ch, cb)
 
     # previous head
-    pid = id()
+    pid = refs.id()
 
     # (branch-name, head-hash)
     bd = current_branch()
@@ -41,6 +41,9 @@ def commit(message):
         append_branch(bd[0], ch)
         util.write(os.path.join('.bvc', 'branch'), bd[0] + '\t' + ch)
 
+# a reference to refs.id
+def id():
+    return refs.id()
 
 # finds the 4 statuses ( added to stage, removed from stage, staged changes, unstaged changes )
 def status():
@@ -128,8 +131,6 @@ def checkout_branch(name):
     refs.update_head(ch)
     checkout(ch)
 
-def id():
-    return util.read(os.path.join('.bvc', 'HEAD'))
 
 def init():
     if not os.path.exists('.bvc'):
@@ -184,6 +185,6 @@ if __name__ == "__main__":
     elif method== "branchd":
         delete_branch(sys.argv[2])
     elif method == "id":
-        sys.stdout.write(id() + '\n')
+        sys.stdout.write(refs.id() + '\n')
     else:
         sys.stderr.write(sys.argv[1] + ' is not an available command.')

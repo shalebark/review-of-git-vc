@@ -3,11 +3,15 @@ import os
 from util import read, write, append as io_append
 import objects
 
+# returns the current commit-hash
+def id():
+    return read(os.path.join('.bvc', 'HEAD'))
+
 # commit object using the head hash
 # tuple -> (tree-hash, timestamp, commit message)
 # if head has not been initialized returns None
 def head():
-    ch = read(os.path.join('.bvc', 'HEAD'))
+    ch = id()
     if not ch:
         return None
     return objects.commit(ch)
