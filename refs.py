@@ -18,11 +18,15 @@ def head():
 
 def log():
     lc = read(os.path.join('.bvc', 'refs'))
-    return list(map(lambda ch: tuple(read('.bvc/objects/' + ch).split('\t')) + (ch,), [ l for l in lc.split('\n') if l ]))
+    return list(map(lambda ch: tuple(read('.bvc/objects/' + ch).split('\t')) + (ch,), [ l.split('\t')[1] for l in lc.split('\n') if l ]))
 
 def update_head(ch):
     write(os.path.join('.bvc', 'HEAD'), ch)
 
+# parent_commit new_commit (if no parent_commit, because its init, then use the same hash as the new_commit)
 def append(ch):
-    io_append(os.path.join('.bvc', 'refs'), ch + os.linesep)
+    pid = id()
+    if not pid:
+        pid = ch
+    io_append(os.path.join('.bvc', 'refs'), pid + '\t' + ch + os.linesep)
 
