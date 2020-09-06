@@ -95,9 +95,6 @@ class TestBVC:
         with open('__second', 'r') as f:
             c1 = f.read()
 
-        print(c1, bvc.current_branch())
-
-
         assert bvc.current_branch()[0] == 'master'
         bvc.make_branch('test')
 
@@ -114,14 +111,10 @@ class TestBVC:
         assert not changes[0] and not changes[1] and not changes[2]
         assert '__second' in changes[3]
 
-        print('staging to', bvc.current_branch())
-
         bvc.stage('__second')
         bvc.commit('change __second in branch test')
 
         bvc.checkout_branch('master')
-
-        print(c1, bvc.current_branch())
 
         changes = bvc.status()
         assert not changes[0] and not changes[1] and not changes[2] and not changes[3]
