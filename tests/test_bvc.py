@@ -130,7 +130,32 @@ class TestBVC:
             c = f.read()
         assert c == 'switched to branch test'
 
+    def test_common_ancestor(self):
+        bvc.checkout_branch('master')
+        cma = bvc.id()
 
+        bvc.make_branch('sidea')
+        bvc.make_branch('sideb')
+
+        bvc.checkout_branch('sidea')
+
+        with open('__second', 'w') as f:
+            f.write('sidea1')
+
+        bvc.stage('__second')
+        bvc.commit('sidea1')
+        sidea_id = bvc.id()
+
+        bvc.checkout_branch('sideb')
+
+        with open('__second', 'w') as f:
+            f.write('sideab')
+
+        bvc.stage('__second')
+        bvc.commit('sideb1')
+        sideb_id = bvc.id()
+
+        assert cma == bvc.common_ancestor(sideb_id, sidea_id)
 
     @classmethod
     def setup_class(cls):

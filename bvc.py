@@ -33,8 +33,8 @@ def commit(message):
     bd = current_branch()
 
     # update head, and ref log
-    refs.update_head(ch)
     refs.append(ch)
+    refs.update_head(ch)
 
     # if at the head of a branch, add the commit record to the branch
     if bd is not None and pid == bd[1]:
@@ -92,6 +92,9 @@ def diff(ch1, rp1, ch2, rp2):
     bc2 = [ l for l in objects.blob(bh2).split('\n') if l ]
 
     return '\n'.join(difflib.unified_diff(bc2, bc1))
+
+def common_ancestor(ch1, ch2):
+    return refs.common_ancestor(ch1, ch2)
 
 def current_branch():
     c = util.read(os.path.join('.bvc', 'branch'))
@@ -186,5 +189,7 @@ if __name__ == "__main__":
         delete_branch(sys.argv[2])
     elif method == "id":
         sys.stdout.write(refs.id() + '\n')
+    elif method == "cma":
+        sys.stdout.write(common_ancestor(sys.argv[2], sys.argv[3]) + '\n')
     else:
         sys.stderr.write(sys.argv[1] + ' is not an available command.')
