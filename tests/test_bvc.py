@@ -173,6 +173,67 @@ class TestBVC:
         sided_id = bvc.id()
         assert cma == bvc.common_ancestor(sidec_id, sided_id)
 
+    def test_merge(self):
+        bvc.checkout_branch('master')
+        with open('__mdiff', 'w') as f:
+            f.write('1\n2\n3\n4\n5\n6\n\n7\n8\n9\n10')
+        bvc.stage('__mdiff')
+        bvc.commit('1 to 10 mdiff')
+
+        bvc.make_branch('mdiffa')
+        bvc.make_branch('mdiffb')
+
+        bvc.checkout_branch('mdiffa')
+        # adds 11
+        with open('__mdiff', 'w') as f:
+            f.write('1\n2\n3\n4\n5\n6\n\n7\n8\n9\n10\n11')
+        bvc.stage('__mdiff')
+        bvc.commit('added 11')
+        mda_id = bvc.id()
+
+        bvc.checkout_branch('mdiffb')
+        mdb_id = bvc.id()
+
+        print('first set')
+        bvc.merge(mda_id, mdb_id, '__mdiff')
+
+        bvc.checkout_branch('mdiffa')
+        """
+            mdiffa changed lines 3 to 6 to:
+            3 three
+            4 four
+            5 five
+            6 six
+        """
+        with open('__mdiff', 'w') as f:
+            f.write('1\n2\n3 three\n4 four\n5 five\n6 six\n7\n8\n9\n10')
+
+        bvc.stage('__mdiff')
+        bvc.commit('mdiff change for a')
+
+        mdiffa_id = bvc.id()
+
+        bvc.checkout_branch('mdiffb')
+        """
+            mdiffb changed lines 3 to 6 to:
+            3 three // - gets deleted
+            4 for
+            5 fev
+            6 // - no change
+        """
+        with open('__mdiff', 'w') as f:
+            f.write('1\n2\n4 for\n5 fev\n6\n7\n8\n9\n10')
+
+        bvc.stage('__mdiff')
+        bvc.commit('mdiff change for b')
+
+        mdiffb_id = bvc.id()
+
+        print('second set')
+        bvc.merge(mdiffb_id, mdiffa_id, '__mdiff')
+
+
+
     @classmethod
     def setup_class(cls):
         clean_bvc()
@@ -183,4 +244,6 @@ class TestBVC:
             os.remove('__first')
         if os.path.exists('__second'):
             os.remove('__second')
+        if os.path.exists('__mdiff'):
+            os.remove('__mdiff')
         clean_bvc()

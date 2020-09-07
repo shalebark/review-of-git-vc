@@ -96,6 +96,66 @@ def diff(ch1, rp1, ch2, rp2):
 def common_ancestor(ch1, ch2):
     return refs.common_ancestor(ch1, ch2)
 
+def merge(ch1, ch2, rp):
+    ach = common_ancestor(ch1, ch2)
+
+    cc1 = objects.commit(ch1)
+    cc2 = objects.commit(ch2)
+    acc = objects.commit(ach)
+
+    tc1 = objects.tree(cc1[0])
+    tc2 = objects.tree(cc2[0])
+    atc = objects.tree(acc[0])
+
+    # find the blobhash that matches the filename
+    bh1 = next((x[0] for x in tc1 if x[1] == rp ))
+    bh2 = next((x[0] for x in tc2 if x[1] == rp ))
+    atl = [ x[0] for x in atc if x[1] == rp ]
+
+    bc1 = [ l for l in objects.blob(bh1).split('\n') if l ]
+    bc2 = [ l for l in objects.blob(bh2).split('\n') if l ]
+    abc = [ l for l in objects.blob(atl[0]).split('\n') if l ] if atl else []
+
+    d1 = list(difflib.unified_diff(abc, bc1, n=0))
+    d2 = list(difflib.unified_diff(abc, bc2, n=0))
+    print(d1, d2, bc1, bc2, abc)
+    print(d1, d2)
+
+    # d1 = [3::]
+    # d2 = list(difflib.unified_diff(abc, bc2))[3::]
+
+    # i1 = iter(d1)
+    # i2 = iter(d2)
+
+    # mr = []
+    # cr = []
+
+    # while True:
+    #     dl1 = next(i1, None)
+    #     dl2 = next(i2, None)
+
+    #     # both exhausted? then done
+    #     if dl1 is None and dl2 is None:
+    #         break
+
+    #     # if both are not the same, then its a conflict
+    #     if dl1 != dl2:
+    #         cr.append(dl1)
+    #     # no change, keep the same
+    #     elif dl[0] == ' ':
+
+    #     # both says to remove, in this scenario we ignore
+    #     elif dl1[0] == '-':
+    #         continue
+
+
+
+
+
+
+    # print(list(d1))
+    # print(list(d2))
+
 def current_branch():
     c = util.read(os.path.join('.bvc', 'branch'))
     if not c:
@@ -191,5 +251,7 @@ if __name__ == "__main__":
         sys.stdout.write(refs.id() + '\n')
     elif method == "cma":
         sys.stdout.write(common_ancestor(sys.argv[2], sys.argv[3]) + '\n')
+    elif method == "merge":
+        merge(sys.argv[2], sys.argv[3], sys.argv[4])
     else:
         sys.stderr.write(sys.argv[1] + ' is not an available command.')
